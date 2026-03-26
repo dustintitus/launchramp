@@ -7,9 +7,34 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_APP_URL ?? 'https://launchramp.app';
+
 export const metadata: Metadata = {
-  title: 'LaunchRamp – Shared Inbox & CRM',
-  description: 'Messaging-first CRM for dealers and local operators',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Launch Ramp - AI Powered Customer Service',
+    template: '%s | Launch Ramp',
+  },
+  description:
+    'AI powered customer service — shared inbox and CRM for messaging-first teams.',
+  openGraph: {
+    title: 'Launch Ramp - AI Powered Customer Service',
+    description:
+      'AI powered customer service — shared inbox and CRM for messaging-first teams.',
+    siteName: 'Launch Ramp',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Launch Ramp - AI Powered Customer Service',
+    description:
+      'AI powered customer service — shared inbox and CRM for messaging-first teams.',
+  },
+  appleWebApp: {
+    title: 'Launch Ramp',
+  },
 };
 
 export default function RootLayout({

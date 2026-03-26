@@ -25,12 +25,21 @@ export const metadata: Metadata = {
     siteName: 'Launch Ramp',
     type: 'website',
     locale: 'en_US',
+    images: [
+      {
+        url: '/launchramp-hero.png',
+        width: 936,
+        height: 930,
+        alt: 'Launch Ramp — AI powered customer service',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Launch Ramp - AI Powered Customer Service',
     description:
       'AI powered customer service — shared inbox and CRM for messaging-first teams.',
+    images: ['/launchramp-hero.png'],
   },
   appleWebApp: {
     title: 'Launch Ramp',

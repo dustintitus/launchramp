@@ -1,23 +1,15 @@
 import { NextResponse } from 'next/server';
-import { createTwilioProvider } from '@launchramp/api';
-import { updateMessageStatus } from '@launchramp/api';
-import crypto from 'crypto';
-
-function verifyTwilioSignature(
-  body: string,
-  signature: string,
-  url: string
-): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) return false;
-
-  const expected = crypto
-    .createHmac('sha1', authToken)
-    .update(url + body)
-    .digest('base64');
-
-  return signature === expected;
-}
+import {
+  createTwilioProvider,
+  updateMessageStatus,
+  parseTwilioWebhookParams,
+  resolveTwilioWebhookUrl,
+  validateTwilioSignature,
+} from '@launchramp/api';
+import type {
+  TwilioStatusWebhookSuccessResponse,
+  TwilioWebhookErrorResponse,
+} from '@launchramp/shared';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -26,34 +18,50 @@ export async function POST(request: Request) {
     request.headers.get('X-Twilio-Signature') ??
     '';
 
-  const url = request.url;
+  const params = parseTwilioWebhookParams(rawBody);
+  const url = resolveTwilioWebhookUrl(request);
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
   if (
     process.env.NODE_ENV === 'production' &&
-    !verifyTwilioSignature(rawBody, signature, url)
+    !validateTwilioSignature(authToken, signature, url, params)
   ) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
-  }
-
-  let payload: Record<string, unknown>;
-  try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
-  } catch {
-    const params = new URLSearchParams(rawBody);
-    payload = Object.fromEntries(params.entries());
+    const err: TwilioWebhookErrorResponse = {
+      success: false,
+      error: {
+        code: 'INVALID_SIGNATURE',
+        message: 'Invalid or missing Twilio signature',
+      },
+    };
+    return NextResponse.json(err, { status: 403 });
   }
 
   try {
     const provider = createTwilioProvider();
-    const parsed = provider.parseStatusWebhook(payload);
+    const parsed = provider.parseStatusWebhook(params);
 
-    await updateMessageStatus(parsed.externalId, parsed.status);
+    const result = await updateMessageStatus(
+      parsed.providerMessageId,
+      parsed.status
+    );
 
-    return NextResponse.json({ received: true });
+    const ok: TwilioStatusWebhookSuccessResponse = {
+      success: true,
+      data: {
+        received: true,
+        updated: result.count,
+      },
+    };
+    return NextResponse.json(ok);
   } catch (error) {
     console.error('[webhook/twilio/status]', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    const err: TwilioWebhookErrorResponse = {
+      success: false,
+      error: {
+        code: 'PROCESSING_ERROR',
+        message: 'Webhook processing failed',
+      },
+    };
+    return NextResponse.json(err, { status: 500 });
   }
 }

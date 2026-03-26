@@ -3,26 +3,29 @@ import type { LifecycleStage } from '@prisma/client';
 import type { ContactCreate, ContactUpdate } from '@launchramp/shared';
 
 export async function findOrCreateContact(data: ContactCreate) {
-  const existing = await prisma.contact.findUnique({
+  return upsertContactByPhone(data);
+}
+
+/**
+ * Upsert a contact by `(organizationId, phone)` — used for inbound SMS so returning senders stay in sync.
+ */
+export async function upsertContactByPhone(data: ContactCreate) {
+  return prisma.contact.upsert({
     where: {
       organizationId_phone: {
         organizationId: data.organizationId,
         phone: data.phone,
       },
     },
-    include: {
-      owner: true,
-    },
-  });
-
-  if (existing) return existing;
-
-  return prisma.contact.create({
-    data: {
+    create: {
       organizationId: data.organizationId,
       phone: data.phone,
       name: data.name,
       email: data.email,
+    },
+    update: {
+      ...(data.name != null && data.name !== '' ? { name: data.name } : {}),
+      ...(data.email != null && data.email !== '' ? { email: data.email } : {}),
     },
     include: {
       owner: true,

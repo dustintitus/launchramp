@@ -6,7 +6,8 @@ import type {
   StatusWebhookResult,
 } from '@launchramp/shared';
 import type { MessageStatus } from '@prisma/client';
-import Twilio from 'twilio';
+import { getTwilioClient } from '../twilio/client';
+import { sendSms } from '../services/sms-service';
 
 const TWILIO_STATUS_MAP: Record<string, MessageStatus> = {
   queued: 'queued',
@@ -17,31 +18,35 @@ const TWILIO_STATUS_MAP: Record<string, MessageStatus> = {
 };
 
 export function createTwilioProvider(): MessagingProvider {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-
-  if (!accountSid || !authToken) {
-    throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are required');
-  }
-
-  const client = Twilio(accountSid, authToken);
-
   return {
     async sendMessage(params: SendMessageParams): Promise<SendMessageResult> {
       const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 
-      const messageParams = {
+      if (messagingServiceSid) {
+        return sendSms({
+          to: params.to,
+          body: params.body,
+          mediaUrls: params.mediaUrls,
+        });
+      }
+
+      const client = getTwilioClient();
+
+      if (!params.from) {
+        throw new Error('No sender: set TWILIO_MESSAGING_SERVICE_SID or configure a From number on the channel account');
+      }
+
+      const message = await client.messages.create({
         to: params.to,
         body: params.body,
-        from: messagingServiceSid ?? params.from,
-        ...(params.mediaUrls?.length && { mediaUrl: params.mediaUrls }),
-      };
+        from: params.from,
+        ...(params.mediaUrls?.length ? { mediaUrl: params.mediaUrls } : {}),
+      });
 
-      const message = await client.messages.create(messageParams);
-
+      const raw = message.status ?? 'queued';
       return {
-        externalId: message.sid,
-        status: (TWILIO_STATUS_MAP[message.status] ?? 'queued') as MessageStatus,
+        providerMessageId: message.sid,
+        status: (TWILIO_STATUS_MAP[raw] ?? 'queued') as MessageStatus,
       };
     },
 
@@ -52,12 +57,20 @@ export function createTwilioProvider(): MessagingProvider {
       const body = p.Body ?? p.body ?? p.MessageBody ?? '';
       const sid = p.MessageSid ?? p.SmsSid ?? '';
 
+      const numMedia = parseInt(p.NumMedia ?? '0', 10);
+      const mediaUrls =
+        numMedia > 0
+          ? [...Array(numMedia)]
+              .map((_, i) => p[`MediaUrl${i}`] ?? '')
+              .filter(Boolean)
+          : undefined;
+
       return {
         from,
         to,
         body,
-        externalId: sid,
-        mediaUrls: p.NumMedia ? [...Array(parseInt(p.NumMedia ?? '0', 10))].map((_, i) => p[`MediaUrl${i}`] ?? '').filter(Boolean) : undefined,
+        providerMessageId: sid,
+        mediaUrls,
       };
     },
 
@@ -67,7 +80,7 @@ export function createTwilioProvider(): MessagingProvider {
       const status = p.MessageStatus ?? p.SmsStatus ?? 'queued';
 
       return {
-        externalId: sid,
+        providerMessageId: sid,
         status: (TWILIO_STATUS_MAP[status] ?? 'queued') as MessageStatus,
       };
     },

@@ -1,29 +1,19 @@
 import { NextResponse } from 'next/server';
-import { createTwilioProvider } from '@launchramp/api';
 import {
-  findOrCreateContact,
+  createTwilioProvider,
   findOrCreateConversation,
   createMessage,
   createActivity,
+  upsertContactByPhone,
+  parseTwilioWebhookParams,
+  resolveTwilioWebhookUrl,
+  validateTwilioSignature,
 } from '@launchramp/api';
 import { prisma } from '@launchramp/db';
-import crypto from 'crypto';
-
-function verifyTwilioSignature(
-  body: string,
-  signature: string,
-  url: string
-): boolean {
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  if (!authToken) return false;
-
-  const expected = crypto
-    .createHmac('sha1', authToken)
-    .update(url + body)
-    .digest('base64');
-
-  return signature === expected;
-}
+import type {
+  TwilioInboundWebhookSuccessResponse,
+  TwilioWebhookErrorResponse,
+} from '@launchramp/shared';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -32,25 +22,27 @@ export async function POST(request: Request) {
     request.headers.get('X-Twilio-Signature') ??
     '';
 
-  const url = request.url;
+  const params = parseTwilioWebhookParams(rawBody);
+  const url = resolveTwilioWebhookUrl(request);
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+
   if (
     process.env.NODE_ENV === 'production' &&
-    !verifyTwilioSignature(rawBody, signature, url)
+    !validateTwilioSignature(authToken, signature, url, params)
   ) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
-  }
-
-  let payload: Record<string, unknown>;
-  try {
-    payload = JSON.parse(rawBody) as Record<string, unknown>;
-  } catch {
-    const params = new URLSearchParams(rawBody);
-    payload = Object.fromEntries(params.entries());
+    const err: TwilioWebhookErrorResponse = {
+      success: false,
+      error: {
+        code: 'INVALID_SIGNATURE',
+        message: 'Invalid or missing Twilio signature',
+      },
+    };
+    return NextResponse.json(err, { status: 403 });
   }
 
   try {
     const provider = createTwilioProvider();
-    const parsed = provider.parseInboundWebhook(payload);
+    const parsed = provider.parseInboundWebhook(params);
 
     const orgId = process.env.TWILIO_DEFAULT_ORG_ID ?? 'org_launchramp_demo';
 
@@ -58,19 +50,20 @@ export async function POST(request: Request) {
       where: {
         organizationId: orgId,
         channelType: 'sms',
-        OR: [
-          { phoneNumber: parsed.to },
-          { externalId: parsed.to },
-        ],
+        OR: [{ phoneNumber: parsed.to }, { externalId: parsed.to }],
       },
     });
 
     if (!channelAccount) {
       console.warn('[webhook] No channel account found for', parsed.to);
-      return NextResponse.json({ received: true });
+      const ok: TwilioInboundWebhookSuccessResponse = {
+        success: true,
+        data: { received: true },
+      };
+      return NextResponse.json(ok);
     }
 
-    const contact = await findOrCreateContact({
+    const contact = await upsertContactByPhone({
       organizationId: orgId,
       phone: parsed.from,
       name: undefined,
@@ -88,7 +81,7 @@ export async function POST(request: Request) {
       body: parsed.body,
       direction: 'inbound',
       channelType: 'sms',
-      externalId: parsed.externalId,
+      providerMessageId: parsed.providerMessageId || undefined,
       mediaUrls: parsed.mediaUrls,
       status: 'delivered',
     });
@@ -108,12 +101,25 @@ export async function POST(request: Request) {
       messageId: message.id,
     });
 
-    return NextResponse.json({ received: true });
+    const ok: TwilioInboundWebhookSuccessResponse = {
+      success: true,
+      data: {
+        received: true,
+        messageId: message.id,
+        conversationId: conversation.id,
+        contactId: contact.id,
+      },
+    };
+    return NextResponse.json(ok);
   } catch (error) {
     console.error('[webhook/twilio/inbound]', error);
-    return NextResponse.json(
-      { error: 'Webhook processing failed' },
-      { status: 500 }
-    );
+    const err: TwilioWebhookErrorResponse = {
+      success: false,
+      error: {
+        code: 'PROCESSING_ERROR',
+        message: 'Webhook processing failed',
+      },
+    };
+    return NextResponse.json(err, { status: 500 });
   }
 }

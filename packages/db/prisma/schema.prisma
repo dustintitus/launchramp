@@ -128,21 +128,22 @@ model Conversation {
 }
 
 model Message {
-  id             String   @id @default(cuid())
-  conversationId String
-  body           String
-  direction      MessageDirection
-  channelType    ChannelType
-  status         MessageStatus @default(queued)
-  externalId     String?
-  mediaUrls      String[] @default([])
-  metadata       Json?
-  createdAt      DateTime @default(now())
+  id                 String   @id @default(cuid())
+  conversationId     String
+  body               String
+  direction          MessageDirection
+  channelType        ChannelType
+  status             MessageStatus @default(queued)
+  /// Twilio MessageSid (or other provider id)
+  providerMessageId  String?
+  mediaUrls          String[] @default([])
+  metadata           Json?
+  createdAt          DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
-  @@index([externalId])
+  @@index([providerMessageId])
 }
 
 model Activity {

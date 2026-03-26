@@ -40,6 +40,10 @@ async function main() {
     }),
   ]);
 
+  /** Must match the E.164 Twilio number that receives SMS (webhook `To` field). */
+  const inboundTwilioPhone =
+    process.env.TWILIO_INBOUND_NUMBER ?? '+18077818017';
+
   let channelAccount = await prisma.channelAccount.findFirst({
     where: { organizationId: org.id, channelType: 'sms' },
   });
@@ -48,8 +52,16 @@ async function main() {
       data: {
         organizationId: org.id,
         channelType: 'sms',
-        phoneNumber: '+15551234567',
-        externalId: 'twilio_demo',
+        phoneNumber: inboundTwilioPhone,
+        externalId: inboundTwilioPhone,
+      },
+    });
+  } else if (channelAccount.phoneNumber !== inboundTwilioPhone) {
+    channelAccount = await prisma.channelAccount.update({
+      where: { id: channelAccount.id },
+      data: {
+        phoneNumber: inboundTwilioPhone,
+        externalId: inboundTwilioPhone,
       },
     });
   }
@@ -117,7 +129,7 @@ async function main() {
           direction: isInbound ? 'inbound' : 'outbound',
           channelType: 'sms',
           status: 'delivered',
-          externalId: `ext_${conv.id}_${j}`,
+          providerMessageId: `ext_${conv.id}_${j}`,
           createdAt: new Date(Date.now() - (msgCount - j) * 600000),
         },
       });

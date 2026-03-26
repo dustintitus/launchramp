@@ -26,7 +26,7 @@ export interface MessageCreate {
   body: string;
   direction: MessageDirection;
   channelType: ChannelType;
-  externalId?: string;
+  providerMessageId?: string;
   mediaUrls?: string[];
 }
 
@@ -49,12 +49,12 @@ export interface InboundWebhookPayload {
   from: string;
   to: string;
   body: string;
-  externalId: string;
+  providerMessageId: string;
   channelType: ChannelType;
   mediaUrls?: string[];
 }
 
 export interface StatusWebhookPayload {
-  externalId: string;
+  providerMessageId: string;
   status: MessageStatus;
 }

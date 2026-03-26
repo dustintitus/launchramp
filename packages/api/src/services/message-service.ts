@@ -1,16 +1,31 @@
 import { prisma } from '@launchramp/db';
 import { getProvider } from '../providers/provider-router';
-import type { MessageDirection } from '@prisma/client';
+import type { MessageDirection, MessageStatus, Message as DbMessage } from '@prisma/client';
 import type { ChannelType } from '@launchramp/shared';
+import type { MessageResponseDto } from '@launchramp/shared';
+
+export function toMessageResponseDto(message: DbMessage): MessageResponseDto {
+  return {
+    id: message.id,
+    conversationId: message.conversationId,
+    body: message.body,
+    direction: message.direction,
+    channelType: message.channelType,
+    status: message.status,
+    providerMessageId: message.providerMessageId,
+    mediaUrls: message.mediaUrls,
+    createdAt: message.createdAt.toISOString(),
+  };
+}
 
 export async function createMessage(params: {
   conversationId: string;
   body: string;
   direction: MessageDirection;
   channelType: ChannelType;
-  externalId?: string;
+  providerMessageId?: string;
   mediaUrls?: string[];
-  status?: 'queued' | 'sent' | 'delivered' | 'failed';
+  status?: MessageStatus;
 }) {
   return prisma.message.create({
     data: {
@@ -18,7 +33,7 @@ export async function createMessage(params: {
       body: params.body,
       direction: params.direction,
       channelType: params.channelType,
-      externalId: params.externalId,
+      providerMessageId: params.providerMessageId,
       mediaUrls: params.mediaUrls ?? [],
       status: params.status ?? 'queued',
     },
@@ -41,8 +56,7 @@ export async function sendOutboundMessage(params: {
   if (!conv) throw new Error('Conversation not found');
 
   const config = conv.channelAccount.config as { phoneNumber?: string } | null;
-  const from = config?.phoneNumber ?? conv.channelAccount.phoneNumber;
-  if (!from) throw new Error('No sender phone number configured');
+  const from = config?.phoneNumber ?? conv.channelAccount.phoneNumber ?? '';
 
   const provider = getProvider(conv.channelType);
   const result = await provider.sendMessage({
@@ -57,7 +71,7 @@ export async function sendOutboundMessage(params: {
     body: params.body,
     direction: 'outbound',
     channelType: conv.channelType,
-    externalId: result.externalId,
+    providerMessageId: result.providerMessageId,
     mediaUrls: params.mediaUrls,
     status: result.status,
   });
@@ -74,11 +88,11 @@ export async function sendOutboundMessage(params: {
 }
 
 export async function updateMessageStatus(
-  externalId: string,
-  status: 'queued' | 'sent' | 'delivered' | 'failed'
+  providerMessageId: string,
+  status: MessageStatus
 ) {
   return prisma.message.updateMany({
-    where: { externalId },
+    where: { providerMessageId },
     data: { status },
   });
 }

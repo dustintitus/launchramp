@@ -9,12 +9,13 @@ export interface MessagingProvider {
 export interface SendMessageParams {
   to: string;
   body: string;
+  /** E.164 sender when not using a Twilio Messaging Service */
   from: string;
   mediaUrls?: string[];
 }
 
 export interface SendMessageResult {
-  externalId: string;
+  providerMessageId: string;
   status: MessageStatus;
 }
 
@@ -22,11 +23,11 @@ export interface InboundWebhookResult {
   from: string;
   to: string;
   body: string;
-  externalId: string;
+  providerMessageId: string;
   mediaUrls?: string[];
 }
 
 export interface StatusWebhookResult {
-  externalId: string;
+  providerMessageId: string;
   status: MessageStatus;
 }

@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import {
   createTwilioProvider,
   updateMessageStatus,
@@ -6,11 +5,11 @@ import {
   resolveTwilioWebhookUrl,
   validateTwilioSignature,
 } from '@launchramp/api';
-import type {
-  TwilioStatusWebhookSuccessResponse,
-  TwilioWebhookErrorResponse,
-} from '@launchramp/shared';
 import { logWebhookError } from '@/lib/webhook-error-log';
+import {
+  twilioPlainError,
+  twilioStatusAck,
+} from '@/lib/twilio-webhook-response';
 
 export const runtime = 'nodejs';
 
@@ -29,14 +28,7 @@ export async function POST(request: Request) {
     process.env.NODE_ENV === 'production' &&
     !validateTwilioSignature(authToken, signature, url, params)
   ) {
-    const err: TwilioWebhookErrorResponse = {
-      success: false,
-      error: {
-        code: 'INVALID_SIGNATURE',
-        message: 'Invalid or missing Twilio signature',
-      },
-    };
-    return NextResponse.json(err, { status: 403 });
+    return twilioPlainError(403, 'Invalid Twilio signature');
   }
 
   try {
@@ -48,23 +40,15 @@ export async function POST(request: Request) {
       parsed.status
     );
 
-    const ok: TwilioStatusWebhookSuccessResponse = {
-      success: true,
-      data: {
-        received: true,
-        updated: result.count,
-      },
-    };
-    return NextResponse.json(ok);
+    console.log('[webhook/twilio/status] ok', {
+      providerMessageId: parsed.providerMessageId,
+      status: parsed.status,
+      updated: result.count,
+    });
+
+    return twilioStatusAck();
   } catch (error) {
     logWebhookError('webhook/twilio/status', error);
-    const err: TwilioWebhookErrorResponse = {
-      success: false,
-      error: {
-        code: 'PROCESSING_ERROR',
-        message: 'Webhook processing failed',
-      },
-    };
-    return NextResponse.json(err, { status: 500 });
+    return twilioPlainError(500, 'Webhook processing failed');
   }
 }

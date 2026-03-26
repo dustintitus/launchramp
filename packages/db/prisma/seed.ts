@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import './seed-env';
+import { prisma } from '../src';
 
 async function main() {
   const ORG_ID = 'org_launchramp_demo';

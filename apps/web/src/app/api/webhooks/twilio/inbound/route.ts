@@ -14,6 +14,9 @@ import type {
   TwilioInboundWebhookSuccessResponse,
   TwilioWebhookErrorResponse,
 } from '@launchramp/shared';
+import { logWebhookError } from '@/lib/webhook-error-log';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -43,6 +46,18 @@ export async function POST(request: Request) {
   try {
     const provider = createTwilioProvider();
     const parsed = provider.parseInboundWebhook(params);
+
+    if (!parsed.from?.trim() || !parsed.to?.trim()) {
+      console.warn('[webhook/twilio/inbound] Missing From or To', {
+        from: parsed.from,
+        to: parsed.to,
+      });
+      const ok: TwilioInboundWebhookSuccessResponse = {
+        success: true,
+        data: { received: true },
+      };
+      return NextResponse.json(ok);
+    }
 
     const orgId = process.env.TWILIO_DEFAULT_ORG_ID ?? 'org_launchramp_demo';
 
@@ -112,7 +127,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(ok);
   } catch (error) {
-    console.error('[webhook/twilio/inbound]', error);
+    logWebhookError('webhook/twilio/inbound', error);
     const err: TwilioWebhookErrorResponse = {
       success: false,
       error: {

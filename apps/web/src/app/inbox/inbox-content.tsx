@@ -36,6 +36,14 @@ type ListResponse = {
   conversations: Conversation[];
   total: number;
   unreadCount: number;
+  meta?: {
+    organizationId: string;
+    filters: {
+      assignedTo: string | null;
+      unassignedOnly: boolean;
+      search: string | null;
+    };
+  };
 };
 
 function normalizeActivities(raw: unknown): Activity[] {
@@ -155,6 +163,15 @@ export function InboxContent() {
 
   const conversations = listData?.conversations ?? [];
   const unreadCount = listData?.unreadCount;
+  const listTotal = listData?.total ?? 0;
+  const activeFilters = listData?.meta?.filters;
+  const orgIdForApi = listData?.meta?.organizationId;
+
+  const showEmptyHelp =
+    !listLoading &&
+    !listError &&
+    listData &&
+    listTotal === 0;
 
   return (
     <div className="flex flex-1 min-h-0">
@@ -169,14 +186,58 @@ export function InboxContent() {
             Loading conversations…
           </div>
         ) : (
-          <ConversationList
-            conversations={conversations}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            search={search}
-            onSearchChange={setSearch}
-            unreadCount={unreadCount}
-          />
+          <>
+            <ConversationList
+              conversations={conversations}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              search={search}
+              onSearchChange={setSearch}
+              unreadCount={unreadCount}
+            />
+            {showEmptyHelp && (
+              <div className="border-t border-amber-100 bg-amber-50/90 px-4 py-3 text-xs text-amber-950">
+                <p className="font-medium">No conversations match this view.</p>
+                {activeFilters?.assignedTo === 'me' && (
+                  <p className="mt-2 text-amber-900/90">
+                    Inbox → <strong>Assigned to me</strong> only shows threads assigned to your
+                    user. SMS webhooks usually create <strong>unassigned</strong> threads — open{' '}
+                    <strong>All</strong> or <strong>Unassigned</strong> in the left sidebar.
+                  </p>
+                )}
+                {activeFilters?.unassignedOnly && (
+                  <p className="mt-2 text-amber-900/90">
+                    <strong>Unassigned</strong> is on; if nothing appears, try <strong>All</strong>{' '}
+                    or confirm the conversation has no assignee in the database.
+                  </p>
+                )}
+                {!activeFilters?.assignedTo && !activeFilters?.unassignedOnly && (
+                  <p className="mt-2 text-amber-900/90">
+                    API reports <strong>0</strong> conversations for organization{' '}
+                    <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-[11px]">
+                      {orgIdForApi ?? '(unknown)'}
+                    </code>
+                    . Confirm{' '}
+                    <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-[11px]">
+                      NEXT_PUBLIC_ORG_ID
+                    </code>{' '}
+                    on Vercel matches{' '}
+                    <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-[11px]">
+                      TWILIO_DEFAULT_ORG_ID
+                    </code>{' '}
+                    (e.g. both <code className="font-mono text-[11px]">org_launchramp_demo</code>), run{' '}
+                    <code className="font-mono text-[11px]">npm run db:seed</code> against production, or
+                    check Twilio inbound logs if SMS never created rows.
+                  </p>
+                )}
+                {activeFilters?.search && (
+                  <p className="mt-2 text-amber-900/90">
+                    Search is active; clear the search box to see all conversations.
+                  </p>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col">

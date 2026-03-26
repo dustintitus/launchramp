@@ -10,6 +10,9 @@ import type {
   TwilioStatusWebhookSuccessResponse,
   TwilioWebhookErrorResponse,
 } from '@launchramp/shared';
+import { logWebhookError } from '@/lib/webhook-error-log';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
     };
     return NextResponse.json(ok);
   } catch (error) {
-    console.error('[webhook/twilio/status]', error);
+    logWebhookError('webhook/twilio/status', error);
     const err: TwilioWebhookErrorResponse = {
       success: false,
       error: {

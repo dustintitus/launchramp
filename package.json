@@ -6,15 +6,21 @@
     "apps/*",
     "packages/*"
   ],
+  "prisma": {
+    "seed": "tsx packages/db/prisma/seed.ts"
+  },
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "db:generate": "turbo run db:generate --filter=@launchramp/db",
     "db:migrate": "turbo run db:migrate --filter=@launchramp/db",
-    "db:seed": "turbo run db:seed --filter=@launchramp/db"
+    "db:seed": "prisma db seed --schema=packages/db/prisma/schema.prisma"
   },
   "devDependencies": {
+    "dotenv": "^16.4.5",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.0",
     "turbo": "^2.0.0"
   },
   "packageManager": "npm@10.2.0"

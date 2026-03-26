@@ -26,7 +26,17 @@ export async function GET(request: Request) {
       offset,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({
+      ...result,
+      meta: {
+        organizationId: orgId,
+        filters: {
+          assignedTo: assignedToId ?? null,
+          unassignedOnly,
+          search: search ?? null,
+        },
+      },
+    });
   } catch (error) {
     console.error('[GET /api/conversations]', error);
     return NextResponse.json(

@@ -44,8 +44,15 @@ export function ConversationList({
         <div className="flex flex-col">
           {conversations.map((conv) => {
             const messages = conv.messages ?? [];
-            const lastMsg = messages[messages.length - 1];
-            const preview = lastMsg?.body ?? 'No messages yet';
+            const newest =
+              messages.length === 0
+                ? undefined
+                : [...messages].sort(
+                    (a, b) =>
+                      new Date(b.createdAt).getTime() -
+                      new Date(a.createdAt).getTime()
+                  )[0];
+            const preview = newest?.body ?? 'No messages yet';
             const displayName = conv.contact.name ?? formatPhone(conv.contact.phone);
 
             return (

@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Main chrome behind panels (inbox, contacts, etc.) */
-    --app-canvas: 220 26% 96%;
+    --app-canvas: 220 30% 94%;
     --background: 0 0% 100%;
     --foreground: 224 71% 4%;
     --border: 220 13% 91%;

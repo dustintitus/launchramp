@@ -14,6 +14,16 @@ export interface MessageThreadProps {
   isSending?: boolean;
 }
 
+function outboundStatusLabel(status: Message['status']): string {
+  const labels: Record<string, string> = {
+    queued: 'Sending…',
+    sent: 'Sent',
+    delivered: 'Delivered',
+    failed: 'Failed',
+  };
+  return labels[status] ?? status;
+}
+
 function MessageBubble({ message }: { message: Message }) {
   const isOutbound = message.direction === 'outbound';
 
@@ -41,7 +51,10 @@ function MessageBubble({ message }: { message: Message }) {
         >
           {formatRelativeTime(message.createdAt)}
           {message.status && message.status !== 'delivered' && (
-            <span> · {message.status}</span>
+            <span>
+              {' '}
+              · {isOutbound ? outboundStatusLabel(message.status) : message.status}
+            </span>
           )}
         </p>
       </div>
@@ -64,7 +77,7 @@ export function MessageThread({
 
   if (isLoading || !conversation) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-neutral-50/50 px-6">
+      <div className="flex flex-1 flex-col items-center justify-center bg-app-canvas/50 px-6">
         <div className="w-full max-w-sm text-center">
           <Skeleton className="mx-auto mb-4 h-12 w-12 rounded-full" />
           <Skeleton className="mx-auto mb-2 h-4 w-32" />

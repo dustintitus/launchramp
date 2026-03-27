@@ -1,16 +1,13 @@
 import { AppSidebar } from '@/components/layout/app-sidebar';
-import { InboxSidebar } from '@/components/inbox/inbox-sidebar';
 
-export default function InboxLayout({
+export default function TemplatesLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <div className="flex h-screen bg-app-canvas">
-      <AppSidebar>
-        <InboxSidebar />
-      </AppSidebar>
+      <AppSidebar />
       {children}
     </div>
   );

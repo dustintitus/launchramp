@@ -1,9 +1,15 @@
 import type { MessageStatus } from '@prisma/client';
 import { getTwilioClient } from '../twilio/client';
 
+/**
+ * Twilio's REST API often returns `queued` immediately after create even though the
+ * message was accepted. We store `sent` so the inbox shows a sensible state; webhooks
+ * still advance to `delivered` / `failed`.
+ */
 const TWILIO_STATUS_MAP: Record<string, MessageStatus> = {
-  queued: 'queued',
-  sending: 'queued',
+  accepted: 'sent',
+  queued: 'sent',
+  sending: 'sent',
   sent: 'sent',
   delivered: 'delivered',
   failed: 'failed',
@@ -39,8 +45,8 @@ export async function sendSms(params: SendSmsParams): Promise<SendSmsResult> {
     ...(params.mediaUrls?.length ? { mediaUrl: params.mediaUrls } : {}),
   });
 
-  const raw = message.status ?? 'queued';
-  const status = TWILIO_STATUS_MAP[raw] ?? 'queued';
+  const raw = message.status ?? 'sent';
+  const status = TWILIO_STATUS_MAP[raw] ?? 'sent';
 
   return {
     providerMessageId: message.sid,

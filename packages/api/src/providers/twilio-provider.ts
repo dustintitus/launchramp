@@ -9,8 +9,11 @@ import type { MessageStatus } from '@prisma/client';
 import { getTwilioClient } from '../twilio/client';
 import { sendSms } from '../services/sms-service';
 
+/** Align with sms-service: Twilio `queued` means accepted, map to `sent` for UI. */
 const TWILIO_STATUS_MAP: Record<string, MessageStatus> = {
-  queued: 'queued',
+  accepted: 'sent',
+  queued: 'sent',
+  sending: 'sent',
   sent: 'sent',
   delivered: 'delivered',
   failed: 'failed',
@@ -43,10 +46,10 @@ export function createTwilioProvider(): MessagingProvider {
         ...(params.mediaUrls?.length ? { mediaUrl: params.mediaUrls } : {}),
       });
 
-      const raw = message.status ?? 'queued';
+      const raw = message.status ?? 'sent';
       return {
         providerMessageId: message.sid,
-        status: (TWILIO_STATUS_MAP[raw] ?? 'queued') as MessageStatus,
+        status: (TWILIO_STATUS_MAP[raw] ?? 'sent') as MessageStatus,
       };
     },
 
@@ -77,11 +80,11 @@ export function createTwilioProvider(): MessagingProvider {
     parseStatusWebhook(payload: unknown): StatusWebhookResult {
       const p = payload as Record<string, string>;
       const sid = p.MessageSid ?? p.SmsSid ?? '';
-      const status = p.MessageStatus ?? p.SmsStatus ?? 'queued';
+      const status = p.MessageStatus ?? p.SmsStatus ?? 'sent';
 
       return {
         providerMessageId: sid,
-        status: (TWILIO_STATUS_MAP[status] ?? 'queued') as MessageStatus,
+        status: (TWILIO_STATUS_MAP[status] ?? 'sent') as MessageStatus,
       };
     },
   };

@@ -30,7 +30,7 @@ export function MessageThread({
 
   if (isLoading || !conversation) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center bg-neutral-50">
+      <div className="flex flex-1 flex-col items-center justify-center bg-app-canvas">
         <div className="text-center">
           <p className="text-sm text-neutral-500">
             {isLoading ? 'Loading...' : 'Select a conversation'}

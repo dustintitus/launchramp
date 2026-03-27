@@ -38,10 +38,15 @@ export async function PATCH(
     const body = await request.json();
 
     const contact = await updateContact(id, orgId, {
-      name: body.name,
-      email: body.email,
+      name: body.name === '' ? null : body.name,
+      email: body.email === '' ? null : body.email,
       stage: body.stage,
-      ownerId: body.ownerId,
+      ownerId:
+        body.ownerId === ''
+          ? null
+          : body.ownerId === undefined
+            ? undefined
+            : body.ownerId,
       tags: body.tags,
     });
 

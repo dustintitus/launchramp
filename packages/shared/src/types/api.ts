@@ -14,8 +14,8 @@ export interface ContactCreate {
 }
 
 export interface ContactUpdate {
-  name?: string;
-  email?: string;
+  name?: string | null;
+  email?: string | null;
   stage?: LifecycleStage;
   ownerId?: string | null;
   tags?: string[];

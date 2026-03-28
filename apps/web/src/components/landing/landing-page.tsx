@@ -7,7 +7,6 @@ const CTA_IMAGE =
 const nav = [
   { label: 'About', href: '#about' },
   { label: 'Features', href: '#features' },
-  { label: 'Team', href: '#team' },
   { label: 'Contact', href: '#contact' },
 ] as const;
 
@@ -17,24 +16,6 @@ const features = [
   'Skinned to look like your business — your marina, your brand',
   'Shared inbox for SMS and messaging so nothing slips through the cracks',
   'With more on the horizon.',
-];
-
-const team = [
-  {
-    name: 'Jay Poole',
-    title: 'Partner / Buckeye Marine',
-    bio: 'Years on the water helping marinas run smoother operations and happier customers.',
-  },
-  {
-    name: 'Steve Tate',
-    title: 'Partner',
-    bio: 'Focused on tooling and workflows that fit how real marina teams work every day.',
-  },
-  {
-    name: 'Dustin Titus',
-    title: 'Founder',
-    bio: 'Building Launch Ramp to turn customer conversations into lasting relationships.',
-  },
 ];
 
 function LogoMark({ className }: { className?: string }) {
@@ -134,42 +115,6 @@ export function LandingPage() {
               </ul>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Team */}
-      <section
-        id="team"
-        className="border-t border-slate-200/60 bg-app-canvas px-6 py-20 text-[#0b1220] md:px-12 lg:px-16 lg:py-24"
-      >
-        <div className="mx-auto max-w-5xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#c17f59]">
-            Why we build Launch Ramp
-          </p>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0b1220] md:text-4xl">
-            Designed by recreational professionals for marina professionals.
-          </h2>
-        </div>
-        <div className="mx-auto mt-16 grid max-w-5xl gap-12 md:grid-cols-3 md:gap-8">
-          {team.map((member) => (
-            <article key={member.name} className="flex flex-col items-center text-center">
-              <div
-                className="mb-6 flex h-36 w-36 items-center justify-center rounded-full border-2 border-teal-500/90 bg-teal-500/5"
-                aria-hidden
-              >
-                <span className="text-xs font-semibold uppercase tracking-wider text-teal-700/50">
-                  Photo
-                </span>
-              </div>
-              <h3 className="text-lg font-bold uppercase tracking-wide text-[#0b1220]">
-                {member.name}
-              </h3>
-              <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-600">
-                {member.title}
-              </p>
-              <p className="mt-4 text-sm leading-relaxed text-slate-600">{member.bio}</p>
-            </article>
-          ))}
         </div>
       </section>
 

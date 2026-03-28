@@ -8,10 +8,10 @@ async function main() {
 
   const org = await prisma.organization.upsert({
     where: { slug: 'launchramp-demo' },
-    update: {},
+    update: { name: 'Bala Cove Marina' },
     create: {
       id: ORG_ID,
-      name: 'LaunchRamp Demo',
+      name: 'Bala Cove Marina',
       slug: 'launchramp-demo',
     },
   });
@@ -151,6 +151,111 @@ async function main() {
     ],
     skipDuplicates: true,
   });
+
+  const bookingRows = [
+    {
+      orderNumber: 'LR-2401',
+      service: 'Dry Launch',
+      scheduledAt: new Date(Date.now() + 86400000),
+      status: 'PENDING' as const,
+    },
+    {
+      orderNumber: 'LR-2402',
+      service: 'Pick-Up',
+      scheduledAt: new Date(Date.now() + 172800000),
+      status: 'READY' as const,
+    },
+    {
+      orderNumber: 'LR-2403',
+      service: 'Drop-Off',
+      scheduledAt: new Date(Date.now() + 259200000),
+      status: 'COMPLETE' as const,
+    },
+    {
+      orderNumber: 'LR-2404',
+      service: 'Dry Launch',
+      scheduledAt: new Date(Date.now() + 345600000),
+      status: 'PENDING' as const,
+    },
+    {
+      orderNumber: 'LR-2405',
+      service: 'Pick-Up',
+      scheduledAt: new Date(Date.now() + 432000000),
+      status: 'PENDING' as const,
+    },
+  ];
+
+  for (const b of bookingRows) {
+    await prisma.booking.upsert({
+      where: {
+        organizationId_orderNumber: {
+          organizationId: org.id,
+          orderNumber: b.orderNumber,
+        },
+      },
+      update: {},
+      create: {
+        organizationId: org.id,
+        orderNumber: b.orderNumber,
+        service: b.service,
+        scheduledAt: b.scheduledAt,
+        status: b.status,
+      },
+    });
+  }
+
+  const staffRows = [
+    {
+      name: 'Alex Lee',
+      role: 'Driver',
+      license: 'G',
+      availability: 10,
+      status: 'NA' as const,
+    },
+    {
+      name: 'John Smith',
+      role: 'Driver',
+      license: 'A',
+      availability: 8,
+      status: 'PICK_UP' as const,
+    },
+    {
+      name: 'Maria Garcia',
+      role: 'Driver',
+      license: 'G',
+      availability: 5,
+      status: 'AVAILABLE' as const,
+    },
+    {
+      name: 'Sam Wilson',
+      role: 'Driver',
+      license: 'G',
+      availability: null,
+      status: 'ON_JOB' as const,
+    },
+  ];
+
+  for (const s of staffRows) {
+    await prisma.staffMember.upsert({
+      where: {
+        organizationId_name: { organizationId: org.id, name: s.name },
+      },
+      update: {
+        role: s.role,
+        license: s.license,
+        availability: s.availability,
+        status: s.status,
+      },
+      create: {
+        organizationId: org.id,
+        name: s.name,
+        role: s.role,
+        license: s.license,
+        availability: s.availability,
+        status: s.status,
+      },
+    });
+  }
 
   console.log('Seed complete. Org ID:', org.id);
 }

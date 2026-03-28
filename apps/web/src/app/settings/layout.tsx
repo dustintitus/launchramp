@@ -1,14 +1,9 @@
-import { AppSidebar } from '@/components/layout/app-sidebar';
+import { AppShell } from '@/components/dashboard/app-shell';
 
 export default function SettingsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex h-screen bg-app-canvas">
-      <AppSidebar />
-      {children}
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

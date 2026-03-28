@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} min-h-screen bg-app-canvas font-sans antialiased`}
+        className={`${inter.variable} min-h-screen bg-dashboard-frame font-sans antialiased`}
       >
         {children}
       </body>

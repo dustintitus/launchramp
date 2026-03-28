@@ -11,6 +11,9 @@ const config: Config = {
     extend: {
       colors: {
         'app-canvas': 'hsl(var(--app-canvas) / <alpha-value>)',
+        'dashboard-navy': 'hsl(var(--dashboard-navy) / <alpha-value>)',
+        'dashboard-frame': 'hsl(var(--dashboard-frame) / <alpha-value>)',
+        'dashboard-coral': 'hsl(var(--dashboard-coral) / <alpha-value>)',
         border: 'hsl(var(--border))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

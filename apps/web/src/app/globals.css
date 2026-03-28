@@ -4,8 +4,12 @@
 
 @layer base {
   :root {
-    /* Main chrome behind panels (inbox, contacts, etc.) */
+    /* Main chrome behind panels (inbox, contacts, dashboard cards) */
     --app-canvas: 220 30% 94%;
+    /* Dashboard shell — navy chrome, teal frame, coral accents */
+    --dashboard-navy: 215 42% 17%;
+    --dashboard-frame: 186 38% 28%;
+    --dashboard-coral: 12 82% 55%;
     --background: 0 0% 100%;
     --foreground: 224 71% 4%;
     --border: 220 13% 91%;

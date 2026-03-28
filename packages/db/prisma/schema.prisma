@@ -51,6 +51,19 @@ enum ConsentType {
   opt_out
 }
 
+enum BookingStatus {
+  PENDING
+  READY
+  COMPLETE
+}
+
+enum StaffMemberStatus {
+  NA
+  PICK_UP
+  AVAILABLE
+  ON_JOB
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -58,12 +71,48 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users          User[]
-  contacts       Contact[]
-  conversations  Conversation[]
+  users           User[]
+  contacts        Contact[]
+  conversations   Conversation[]
   channelAccounts ChannelAccount[]
-  templates      Template[]
-  activities     Activity[]
+  templates       Template[]
+  activities      Activity[]
+  bookings        Booking[]
+  staffMembers    StaffMember[]
+}
+
+model Booking {
+  id             String         @id @default(cuid())
+  organizationId String
+  orderNumber    String
+  service        String
+  scheduledAt    DateTime
+  status         BookingStatus  @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, orderNumber])
+  @@index([organizationId])
+  @@index([organizationId, scheduledAt])
+}
+
+model StaffMember {
+  id             String            @id @default(cuid())
+  organizationId String
+  name           String
+  role           String            @default("Driver")
+  license        String?
+  availability   Int?
+  status         StaffMemberStatus @default(NA)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
 }
 
 model User {

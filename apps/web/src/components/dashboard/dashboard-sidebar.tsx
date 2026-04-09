@@ -8,12 +8,14 @@ import {
   IconCalendar,
   IconCog,
   IconMessages,
+  IconSearch,
   IconUserCircle,
   IconUsers,
 } from './dashboard-icons';
 
 const items = [
   { href: '/dashboard', label: 'Bookings', icon: IconCalendar, match: (p: string) => p === '/dashboard' },
+  { href: '/dashboard/microsoft-search', label: 'Microsoft 365', icon: IconSearch, match: (p: string) => p.startsWith('/dashboard/microsoft-search') },
   { href: '/inbox', label: 'Messages', icon: IconMessages, match: (p: string) => p.startsWith('/inbox') },
   { href: '/dashboard/staff', label: 'Staff', icon: IconUsers, match: (p: string) => p.startsWith('/dashboard/staff') },
   { href: '/dashboard/vehicles', label: 'Service vehicles', icon: IconCog, match: (p: string) => p.startsWith('/dashboard/vehicles') },

@@ -27,10 +27,10 @@ export const metadata: Metadata = {
     locale: 'en_US',
     images: [
       {
-        url: '/launchramp-hero.png',
-        width: 936,
-        height: 930,
-        alt: 'Launch Ramp — AI powered customer service',
+        url: '/og-share-logo.jpg',
+        width: 1024,
+        height: 1023,
+        alt: 'Launch Ramp',
       },
     ],
   },
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     title: 'Launch Ramp - AI Powered Customer Service',
     description:
       'AI powered customer service — shared inbox and CRM for messaging-first teams.',
-    images: ['/launchramp-hero.png'],
+    images: ['/og-share-logo.jpg'],
   },
   appleWebApp: {
     title: 'Launch Ramp',

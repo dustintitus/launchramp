@@ -51,6 +51,15 @@ export function IconUserCircle({ className }: { className?: string }) {
   );
 }
 
+export function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconBell({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>

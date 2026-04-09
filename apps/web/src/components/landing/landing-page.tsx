@@ -22,12 +22,14 @@ const features = [
 function LogoMark({ className }: { className?: string }) {
   return (
     <div
-      className={`flex items-baseline gap-1 font-semibold tracking-tight ${className ?? ''}`}
+      className={`flex items-baseline gap-1.5 font-semibold tracking-tight ${className ?? ''}`}
     >
-      <span className="rounded border border-current px-1.5 py-0.5 text-xs font-bold leading-none">
+      <span className="rounded border border-current px-2 py-1 text-sm font-bold leading-none">
         LR
       </span>
-      <span className="text-sm font-semibold tracking-[0.2em]">LAUNCH RAMP</span>
+      <span className="text-base font-semibold tracking-[0.18em] sm:text-lg">
+        LAUNCH RAMP
+      </span>
     </div>
   );
 }
@@ -42,7 +44,7 @@ export function LandingPage() {
 
         <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-6 md:px-10 lg:px-14">
           <LogoMark className="text-white" />
-          <nav className="flex flex-1 flex-wrap items-center justify-end gap-x-6 gap-y-2 text-[10px] font-medium tracking-[0.18em] text-white/95 sm:text-[11px] sm:tracking-[0.2em]">
+          <nav className="flex flex-1 flex-wrap items-center justify-end gap-x-7 gap-y-2 text-xs font-medium tracking-[0.14em] text-white/95 sm:text-sm sm:tracking-[0.16em]">
             {nav.map((item) => (
               <a
                 key={item.href}
@@ -54,7 +56,7 @@ export function LandingPage() {
             ))}
             <Link
               href="/dashboard"
-              className="rounded-full border border-white/40 bg-white/10 px-3 py-1.5 text-[10px] font-semibold tracking-wider text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:px-4 sm:text-[11px]"
+              className="rounded-full border border-white/40 bg-white/10 px-4 py-2 text-xs font-semibold tracking-[0.12em] text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:px-5 sm:text-sm"
             >
               Open app
             </Link>

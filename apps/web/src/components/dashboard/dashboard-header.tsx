@@ -7,12 +7,12 @@ export function DashboardHeader() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-dashboard-navy px-4 md:px-6">
       <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
-        <span className="shrink-0 rounded border border-white/80 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+        <span className="shrink-0 rounded border border-white/80 px-2 py-1 text-xs font-bold leading-none text-white">
           LR
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-semibold tracking-wide text-white">LAUNCH RAMP</p>
-          <p className="hidden truncate text-[10px] font-medium uppercase tracking-[0.12em] text-white/60 sm:block">
+          <p className="truncate text-base font-semibold tracking-wide text-white">LAUNCH RAMP</p>
+          <p className="hidden truncate text-xs font-medium uppercase tracking-[0.1em] text-white/60 sm:block">
             Customer service management
           </p>
         </div>

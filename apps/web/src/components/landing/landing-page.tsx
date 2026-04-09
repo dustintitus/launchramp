@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { HeroBackgroundVideo } from './hero-background-video';
 
 const CTA_IMAGE =
   'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=2400&q=80';
@@ -34,19 +35,9 @@ function LogoMark({ className }: { className?: string }) {
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0b1220] text-white">
-      {/* Hero — background: /public/videos/hero.mov (Adobe stock) */}
+      {/* Hero — MP4 for Chrome; MOV fallback (see hero-background-video.tsx) */}
       <section className="relative flex min-h-[min(92vh,900px)] flex-col overflow-hidden">
-        <video
-          className="absolute inset-0 z-0 h-full min-h-full w-full object-cover object-center"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          aria-hidden
-        >
-          <source src="/videos/hero.mov" type="video/quicktime" />
-        </video>
+        <HeroBackgroundVideo />
         <div className="absolute inset-0 z-[1] bg-gradient-to-b from-[#0b1220]/75 via-[#0b1220]/45 to-[#0b1220]/85" />
 
         <header className="relative z-10 flex flex-wrap items-center justify-between gap-4 px-6 py-6 md:px-10 lg:px-14">

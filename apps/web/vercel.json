@@ -1,4 +1,3 @@
 {
-  "installCommand": "cd ../.. && npm ci",
-  "buildCommand": "cd ../.. && node scripts/vercel-build.cjs"
+  "installCommand": "cd ../.. && npm ci"
 }

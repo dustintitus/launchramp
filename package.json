@@ -12,7 +12,6 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "vercel:build-web": "node scripts/vercel-build.cjs",
     "lint": "turbo run lint",
     "db:generate": "turbo run db:generate --filter=@launchramp/db",
     "db:migrate": "turbo run db:migrate --filter=@launchramp/db",

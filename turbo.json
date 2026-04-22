@@ -3,7 +3,10 @@
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "POSTGRES_PRISMA_URL",
-    "POSTGRES_URL"
+    "POSTGRES_URL",
+    "VERCEL",
+    "VERCEL_ENV",
+    "SKIP_PRISMA_MIGRATE"
   ],
   "tasks": {
     "build": {

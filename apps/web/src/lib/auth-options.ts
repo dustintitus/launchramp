@@ -24,6 +24,18 @@ const providers = isMicrosoftAuthConfigured()
 
 const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? 'org_launchramp_demo';
 
+/** Comma-separated in BOOTSTRAP_ADMIN_EMAILS; defaults so first deploy has an admin without extra env. */
+function getBootstrapAdminEmails(): Set<string> {
+  const fallback = 'dustin.titus@gmail.com';
+  const raw = process.env.BOOTSTRAP_ADMIN_EMAILS ?? fallback;
+  return new Set(
+    raw
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 async function ensureDefaultOrganization() {
   await prisma.organization.upsert({
     where: { id: DEFAULT_ORG_ID },
@@ -85,6 +97,9 @@ export const authOptions: NextAuthOptions = {
         data: Parameters<NonNullable<Adapter['createUser']>>[0]
       ) {
         await ensureDefaultOrganization();
+        const boot = getBootstrapAdminEmails();
+        const isBootstrapAdmin =
+          !!data.email && boot.has(data.email.toLowerCase());
         const created = await prisma.user.create({
           data: {
             email: data.email,
@@ -92,6 +107,7 @@ export const authOptions: NextAuthOptions = {
             image: data.image,
             emailVerified: data.emailVerified,
             organizationId: DEFAULT_ORG_ID,
+            role: isBootstrapAdmin ? 'ADMIN' : 'USER',
           },
         });
         return created as any;
@@ -106,6 +122,17 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login' },
   providers,
+  events: {
+    async createUser({ user }) {
+      const email = user.email?.toLowerCase();
+      if (email && getBootstrapAdminEmails().has(email)) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { role: 'ADMIN' },
+        });
+      }
+    },
+  },
   callbacks: {
     async redirect({ url, baseUrl }) {
       try {
@@ -120,6 +147,18 @@ export const authOptions: NextAuthOptions = {
     },
     async signIn({ user }) {
       if (!user.email) return false;
+      const email = user.email.toLowerCase();
+      if (getBootstrapAdminEmails().has(email)) {
+        const existing = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+        if (existing) {
+          await prisma.user.update({
+            where: { id: existing.id },
+            data: { role: 'ADMIN' },
+          });
+        }
+      }
       // NextAuth invokes signIn before the DB user exists for new OAuth users;
       // `user` is then the provider profile (id is the provider sub, not our User.id).
       const dbUser = await prisma.user.findUnique({
@@ -129,8 +168,29 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
+      if (user?.email) {
+        token.email = user.email.toLowerCase();
+        if (getBootstrapAdminEmails().has(token.email)) {
+          const u = await prisma.user.update({
+            where: { id: user.id },
+            data: { role: 'ADMIN' },
+            select: {
+              id: true,
+              role: true,
+              organizationId: true,
+              disabled: true,
+            },
+          });
+          token.sub = u.id;
+          token.role = u.role as typeof token.role;
+          token.organizationId = u.organizationId;
+          token.disabled = u.disabled;
+          return token;
+        }
+      }
       if (user) {
         token.sub = user.id;
+        if (user.email) token.email = user.email.toLowerCase();
         token.role = (user as { role?: string }).role as typeof token.role;
         token.organizationId = (user as { organizationId?: string })
           .organizationId;

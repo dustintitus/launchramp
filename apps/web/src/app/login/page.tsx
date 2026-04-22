@@ -1,4 +1,5 @@
 import { LoginButtons } from './login-buttons';
+import { isMicrosoftAuthConfigured } from '@/lib/oauth-provider-flags';
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthCreateAccount:
@@ -10,7 +11,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   AccessDenied: 'You do not have permission to sign in (this account may be disabled).',
   Configuration:
     'Sign-in is misconfigured on the server (for example NEXTAUTH_SECRET, NEXTAUTH_URL, or OAuth client IDs).',
-  Callback: 'Sign-in failed during the callback. Check server logs and OAuth redirect settings.',
+  Callback:
+    'Something failed after Google returned to this app (database write, session cookie, or redirect URL). In Vercel open the latest deployment → Logs, filter for OAUTH_CALLBACK or Prisma. Confirm DATABASE_URL works from serverless, NEXTAUTH_URL matches this site (including https and no trailing slash), and try signing in from an incognito window so an old callback URL cookie cannot break the redirect.',
 };
 
 export default function LoginPage({
@@ -19,6 +21,7 @@ export default function LoginPage({
   searchParams?: { callbackUrl?: string; error?: string };
 }) {
   const callbackUrl = searchParams?.callbackUrl ?? '/dashboard';
+  const showMicrosoft = isMicrosoftAuthConfigured();
   const errorKey = searchParams?.error;
   const errorMessage =
     errorKey &&
@@ -33,7 +36,9 @@ export default function LoginPage({
             Sign in to Launch Ramp
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Use Google or Microsoft to continue.
+            {showMicrosoft
+              ? 'Use Google or Microsoft to continue.'
+              : 'Use Google to continue.'}
           </p>
           {errorMessage ? (
             <p
@@ -45,7 +50,7 @@ export default function LoginPage({
           ) : null}
         </div>
 
-        <LoginButtons callbackUrl={callbackUrl} />
+        <LoginButtons callbackUrl={callbackUrl} showMicrosoft={showMicrosoft} />
       </div>
     </main>
   );

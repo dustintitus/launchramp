@@ -2,7 +2,13 @@
 
 import { signIn } from 'next-auth/react';
 
-export function LoginButtons({ callbackUrl }: { callbackUrl: string }) {
+export function LoginButtons({
+  callbackUrl,
+  showMicrosoft = false,
+}: {
+  callbackUrl: string;
+  showMicrosoft?: boolean;
+}) {
   return (
     <div className="space-y-3">
       <button
@@ -12,13 +18,15 @@ export function LoginButtons({ callbackUrl }: { callbackUrl: string }) {
       >
         Continue with Google
       </button>
-      <button
-        type="button"
-        onClick={() => signIn('azure-ad', { callbackUrl })}
-        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-50"
-      >
-        Continue with Microsoft
-      </button>
+      {showMicrosoft ? (
+        <button
+          type="button"
+          onClick={() => signIn('azure-ad', { callbackUrl })}
+          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm transition hover:bg-slate-50"
+        >
+          Continue with Microsoft
+        </button>
+      ) : null}
     </div>
   );
 }

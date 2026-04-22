@@ -4,6 +4,23 @@ import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from '@launchramp/db';
+import { isMicrosoftAuthConfigured } from '@/lib/oauth-provider-flags';
+
+const googleProvider = GoogleProvider({
+  clientId: process.env.GOOGLE_CLIENT_ID!,
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+});
+
+const providers = isMicrosoftAuthConfigured()
+  ? [
+      googleProvider,
+      AzureADProvider({
+        clientId: process.env.MICROSOFT_CLIENT_ID!,
+        clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+        tenantId: process.env.MICROSOFT_TENANT_ID!,
+      }),
+    ]
+  : [googleProvider];
 
 const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? 'org_launchramp_demo';
 
@@ -44,18 +61,19 @@ export const authOptions: NextAuthOptions = {
   })(),
   session: { strategy: 'database' },
   pages: { signIn: '/login' },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    AzureADProvider({
-      clientId: process.env.MICROSOFT_CLIENT_ID!,
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-      tenantId: process.env.MICROSOFT_TENANT_ID!,
-    }),
-  ],
+  providers,
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      try {
+        if (url.startsWith('/')) return `${baseUrl}${url}`;
+        const next = new URL(url);
+        const base = new URL(baseUrl);
+        if (next.origin === base.origin) return url;
+      } catch {
+        /* malformed callbackUrl cookie / param would throw in default handler → error=Callback */
+      }
+      return baseUrl;
+    },
     async signIn({ user }) {
       if (!user.email) return false;
       // NextAuth invokes signIn before the DB user exists for new OAuth users;

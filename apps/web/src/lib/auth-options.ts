@@ -1,5 +1,9 @@
 import type { NextAuthOptions } from 'next-auth';
-import type { Adapter, AdapterAccount } from 'next-auth/adapters';
+import type {
+  Adapter,
+  AdapterAccount,
+  AdapterSession,
+} from 'next-auth/adapters';
 import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
@@ -80,6 +84,41 @@ export const authOptions: NextAuthOptions = {
             providerAccountId: String(providerAccountId),
           },
         });
+      },
+      /**
+       * Same pattern as Account: callback-handler may call this with an existing
+       * session cookie; `findUnique({ where: { sessionToken }})` requires the
+       * Session.sessionToken unique index to exist in the database.
+       */
+      async getSessionAndUser(sessionToken: string) {
+        if (!sessionToken) return null;
+        const userAndSession = await prisma.session.findFirst({
+          where: { sessionToken },
+          include: { user: true },
+        });
+        if (!userAndSession) return null;
+        const { user, ...session } = userAndSession;
+        return { user, session } as any;
+      },
+      async deleteSession(sessionToken: string) {
+        if (!sessionToken) return;
+        await prisma.session.deleteMany({ where: { sessionToken } });
+      },
+      async updateSession(
+        session: Partial<AdapterSession> & Pick<AdapterSession, 'sessionToken'>
+      ) {
+        const row = await prisma.session.findFirst({
+          where: { sessionToken: session.sessionToken },
+        });
+        if (!row) return null;
+        const { sessionToken: _st, ...data } = session;
+        if (Object.keys(data).length === 0) {
+          return prisma.session.findUnique({ where: { id: row.id } }) as any;
+        }
+        return prisma.session.update({
+          where: { id: row.id },
+          data,
+        }) as any;
       },
       async createUser(
         data: Parameters<NonNullable<Adapter['createUser']>>[0]

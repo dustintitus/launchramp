@@ -7,6 +7,18 @@ import { prisma } from '@launchramp/db';
 
 const DEFAULT_ORG_ID = process.env.DEFAULT_ORG_ID ?? 'org_launchramp_demo';
 
+async function ensureDefaultOrganization() {
+  await prisma.organization.upsert({
+    where: { id: DEFAULT_ORG_ID },
+    update: {},
+    create: {
+      id: DEFAULT_ORG_ID,
+      name: 'Launch Ramp',
+      slug: 'launchramp-demo',
+    },
+  });
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   adapter: (() => {
@@ -16,6 +28,7 @@ export const authOptions: NextAuthOptions = {
       async createUser(
         data: Parameters<NonNullable<Adapter['createUser']>>[0]
       ) {
+        await ensureDefaultOrganization();
         const created = await prisma.user.create({
           data: {
             email: data.email,
@@ -45,7 +58,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
-      const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      // NextAuth invokes signIn before the DB user exists for new OAuth users;
+      // `user` is then the provider profile (id is the provider sub, not our User.id).
+      const dbUser = await prisma.user.findUnique({
+        where: { email: user.email },
+      });
       if (dbUser?.disabled) return false;
       return true;
     },

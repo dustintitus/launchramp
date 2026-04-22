@@ -1,5 +1,5 @@
 import type { NextAuthOptions } from 'next-auth';
-import type { Adapter } from 'next-auth/adapters';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
@@ -42,6 +42,45 @@ export const authOptions: NextAuthOptions = {
     const base = PrismaAdapter(prisma);
     return {
       ...base,
+      /**
+       * Default Prisma adapter uses `findUnique` on @@unique([provider, providerAccountId]).
+       * If production DB predates that index or drifted from migrations, Prisma throws
+       * "Invalid prisma.account.findUnique() invocation". `findFirst` uses the same filters
+       * and only needs a btree index on (provider, providerAccountId) or a sequential scan.
+       */
+      async getUserByAccount(
+        providerAccount: Pick<AdapterAccount, 'provider' | 'providerAccountId'>
+      ) {
+        const { provider, providerAccountId } = providerAccount;
+        if (
+          !provider ||
+          providerAccountId === undefined ||
+          providerAccountId === null ||
+          String(providerAccountId) === ''
+        ) {
+          return null;
+        }
+        const row = await prisma.account.findFirst({
+          where: {
+            provider,
+            providerAccountId: String(providerAccountId),
+          },
+          include: { user: true },
+        });
+        return (row?.user as any) ?? null;
+      },
+      async unlinkAccount(
+        providerAccount: Pick<AdapterAccount, 'provider' | 'providerAccountId'>
+      ) {
+        const { provider, providerAccountId } = providerAccount;
+        if (!provider || providerAccountId == null) return;
+        await prisma.account.deleteMany({
+          where: {
+            provider,
+            providerAccountId: String(providerAccountId),
+          },
+        });
+      },
       async createUser(
         data: Parameters<NonNullable<Adapter['createUser']>>[0]
       ) {

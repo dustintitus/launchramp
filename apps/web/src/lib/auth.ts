@@ -1,14 +1,28 @@
-/**
- * Placeholder auth - replace with NextAuth, Clerk, etc.
- * For MVP we use a fixed org + user from env or defaults.
- */
-export const MOCK_ORG_ID = 'org_launchramp_demo';
-export const MOCK_USER_ID = 'user_demo_1';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
-export function getCurrentOrgId(): string {
-  return process.env.NEXT_PUBLIC_ORG_ID ?? MOCK_ORG_ID;
+export async function requireUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    throw new Error('Unauthorized');
+  }
+  return session.user;
 }
 
-export function getCurrentUserId(): string {
-  return process.env.NEXT_PUBLIC_USER_ID ?? MOCK_USER_ID;
+export async function getCurrentOrgId(): Promise<string> {
+  const user = await requireUser();
+  return user.organizationId;
+}
+
+export async function getCurrentUserId(): Promise<string> {
+  const user = await requireUser();
+  return user.id;
+}
+
+export async function requireAdmin() {
+  const user = await requireUser();
+  if (user.role !== 'ADMIN') {
+    throw new Error('Forbidden');
+  }
+  return user;
 }

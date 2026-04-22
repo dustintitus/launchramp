@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const contact = await getContactById(id, orgId);
 
     if (!contact) {
@@ -34,7 +34,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const body = await request.json();
 
     const contact = await updateContact(id, orgId, {

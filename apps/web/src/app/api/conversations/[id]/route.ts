@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const conversation = await getConversationById(id, orgId);
 
     if (!conversation) {

@@ -6,7 +6,7 @@ import { getCurrentOrgId } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit')
       ? parseInt(searchParams.get('limit')!, 10)

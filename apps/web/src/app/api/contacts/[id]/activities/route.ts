@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get('limit')
       ? parseInt(searchParams.get('limit')!, 10)

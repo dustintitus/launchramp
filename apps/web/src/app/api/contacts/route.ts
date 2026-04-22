@@ -4,7 +4,7 @@ import { getCurrentOrgId } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const { searchParams } = new URL(request.url);
     const stage = searchParams.get('stage') as 'lead' | 'qualified' | 'customer' | 'churned' | null;
     const ownerId = searchParams.get('ownerId') ?? undefined;
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const body = await request.json();
     const { phone, name, email } = body;
 

@@ -4,7 +4,7 @@ import { getCurrentOrgId } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const users = await listUsersByOrganization(orgId);
     return NextResponse.json({ users });
   } catch (error) {

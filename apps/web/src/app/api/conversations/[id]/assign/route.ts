@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { assignConversation } from '@launchramp/api';
-import { getCurrentOrgId, getCurrentUserId } from '@/lib/auth';
+import { getCurrentOrgId } from '@/lib/auth';
 
 export async function PATCH(
   request: Request,
@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const body = await request.json();
     const assignedToId = body.assignedToId as string | null;
 

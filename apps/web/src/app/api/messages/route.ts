@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json(err, { status: 400 });
   }
 
-  const orgId = getCurrentOrgId();
+  const orgId = await getCurrentOrgId();
 
   try {
     const convCheck = await prisma.conversation.findFirst({

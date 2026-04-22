@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const body = await request.json();
     const { content } = body;
 

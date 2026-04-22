@@ -2,8 +2,13 @@
 
 import Link from 'next/link';
 import { IconBell } from './dashboard-icons';
+import { useSession, signOut } from 'next-auth/react';
 
 export function DashboardHeader() {
+  const { data } = useSession();
+  const letter =
+    (data?.user?.name?.trim()?.[0] ?? data?.user?.email?.trim()?.[0] ?? 'U').toUpperCase();
+
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 bg-dashboard-navy px-4 md:px-6">
       <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
@@ -29,12 +34,15 @@ export function DashboardHeader() {
           </span>
         </button>
         <div className="h-8 w-px bg-white/15" aria-hidden />
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white ring-1 ring-white/20"
-          aria-hidden
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/' })}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20"
+          aria-label="Sign out"
+          title="Sign out"
         >
-          U
-        </div>
+          {letter}
+        </button>
       </div>
     </header>
   );

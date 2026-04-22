@@ -9,4 +9,6 @@ const monorepoRoot = path.resolve(
 );
 
 config({ path: path.join(monorepoRoot, '.env') });
-config({ path: path.join(monorepoRoot, '.env.local'), override: true });
+// Prefer `.env` for local dev. `.env.local` is typically Vercel-managed and may
+// point at a remote database; we don't want seeding to accidentally hit that.
+config({ path: path.join(monorepoRoot, '.env.local') });

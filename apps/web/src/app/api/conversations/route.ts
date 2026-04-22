@@ -6,7 +6,7 @@ import { getCurrentOrgId, getCurrentUserId } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const { searchParams } = new URL(request.url);
     const assignedToId = searchParams.get('assignedTo');
     const unassignedOnly = searchParams.get('unassigned') === 'true';
@@ -19,7 +19,10 @@ export async function GET(request: Request) {
       : 0;
 
     const result = await listConversations(orgId, {
-      assignedToId: assignedToId === 'me' ? getCurrentUserId() : assignedToId ?? undefined,
+      assignedToId:
+        assignedToId === 'me'
+          ? await getCurrentUserId()
+          : assignedToId ?? undefined,
       unassignedOnly,
       search,
       limit,

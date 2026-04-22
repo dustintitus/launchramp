@@ -4,7 +4,7 @@ import { getCurrentOrgId } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const templates = await prisma.template.findMany({
       where: { organizationId: orgId },
       orderBy: { name: 'asc' },
@@ -21,7 +21,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const orgId = getCurrentOrgId();
+    const orgId = await getCurrentOrgId();
     const body = await request.json();
     const { name, body: templateBody, variables } = body;
 

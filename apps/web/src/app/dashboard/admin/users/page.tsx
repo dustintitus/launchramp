@@ -1,22 +1,45 @@
 import { prisma } from '@launchramp/db';
+import { listLightspeedDealers, syncLightspeedOpenRepairOrders } from '@launchramp/api';
 import { requireAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Admin users | Launch Ramp',
 };
 
-async function getLightspeedCmfs() {
+async function getLightspeedCmfs(): Promise<string[]> {
+  const username = process.env.LIGHTSPEED_USERNAME;
+  const password = process.env.LIGHTSPEED_PASSWORD;
+  if (!username || !password) return [];
   try {
-    const res = await fetch('/api/integrations/lightspeed/dealers', {
-      method: 'GET',
-      cache: 'no-store',
+    const { cmfs } = await listLightspeedDealers({
+      username,
+      password,
+      baseUrl: process.env.LIGHTSPEED_BASE_URL,
     });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { cmfs?: string[] };
-    return Array.isArray(json.cmfs) ? json.cmfs : [];
+    return cmfs;
   } catch {
     return [];
+  }
+}
+
+/** CMF from env, else first dealer CMF (same rules as POST /api/.../sync). */
+async function resolveLightspeedCmf(): Promise<string | null> {
+  const fromEnv = process.env.LIGHTSPEED_CMF?.trim();
+  if (fromEnv) return fromEnv;
+  const username = process.env.LIGHTSPEED_USERNAME;
+  const password = process.env.LIGHTSPEED_PASSWORD;
+  if (!username || !password) return null;
+  try {
+    const { cmfs } = await listLightspeedDealers({
+      username,
+      password,
+      baseUrl: process.env.LIGHTSPEED_BASE_URL,
+    });
+    return cmfs[0] ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -35,25 +58,48 @@ async function getUsers(orgId: string) {
   });
 }
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams?: { lightspeed?: string; message?: string; count?: string };
+}) {
   const admin = await requireAdmin();
   const users = await getUsers(admin.organizationId);
   const cmfs = await getLightspeedCmfs();
+  const ls = searchParams?.lightspeed;
+  const lsDetail = searchParams?.message
+    ? decodeURIComponent(searchParams.message).slice(0, 400)
+    : null;
 
   async function runLightspeedSync() {
     'use server';
-    await requireAdmin();
-    const res = await fetch('/api/integrations/lightspeed/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) {
-      console.warn('[lightspeed sync] failed', await res.text());
+    const adminUser = await requireAdmin();
+    const username = process.env.LIGHTSPEED_USERNAME;
+    const password = process.env.LIGHTSPEED_PASSWORD;
+    if (!username || !password) {
+      redirect('/dashboard/admin/users?lightspeed=missing_credentials');
     }
+    const cmf = await resolveLightspeedCmf();
+    if (!cmf) {
+      redirect('/dashboard/admin/users?lightspeed=missing_cmf');
+    }
+    const result = await syncLightspeedOpenRepairOrders({
+      organizationId: adminUser.organizationId,
+      cmf,
+      username,
+      password,
+      baseUrl: process.env.LIGHTSPEED_BASE_URL,
+    });
     revalidatePath('/dashboard');
     revalidatePath('/contacts');
     revalidatePath('/dashboard/admin/users');
+    if (!result.ok) {
+      const msg = encodeURIComponent(result.error.slice(0, 300));
+      redirect(`/dashboard/admin/users?lightspeed=api_error&message=${msg}`);
+    }
+    redirect(
+      `/dashboard/admin/users?lightspeed=ok&count=${String(result.openRepairOrders)}`
+    );
   }
 
   async function setRole(formData: FormData) {
@@ -101,6 +147,47 @@ export default async function AdminUsersPage() {
         <p className="mt-2 text-sm text-slate-600">
           Triggers an on-demand sync of open repair orders + customers into the local DB.
         </p>
+        {ls === 'ok' ? (
+          <p
+            role="status"
+            className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+          >
+            Sync finished. Open repair orders processed:{' '}
+            <span className="font-mono">{searchParams?.count ?? '—'}</span>
+          </p>
+        ) : null}
+        {ls === 'missing_cmf' ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            No CMF available. Set <code className="rounded bg-amber-100/80 px-1">LIGHTSPEED_CMF</code> on
+            the server or ensure Lightspeed credentials can list dealers so we can pick the first CMF.
+          </p>
+        ) : null}
+        {ls === 'missing_credentials' ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            Set <code className="rounded bg-amber-100/80 px-1">LIGHTSPEED_USERNAME</code> and{' '}
+            <code className="rounded bg-amber-100/80 px-1">LIGHTSPEED_PASSWORD</code> on the server.
+          </p>
+        ) : null}
+        {ls === 'api_error' ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            Lightspeed API or database error during sync.
+            {lsDetail ? (
+              <>
+                {' '}
+                <span className="mt-1 block font-mono text-xs text-amber-900/90">{lsDetail}</span>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {cmfs.length > 0 && (
           <p className="mt-2 text-xs text-slate-500">
             Available CMFs: <span className="font-mono">{cmfs.join(', ')}</span>

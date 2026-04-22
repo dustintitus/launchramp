@@ -1,9 +1,5 @@
 import type { NextAuthOptions } from 'next-auth';
-import type {
-  Adapter,
-  AdapterAccount,
-  AdapterSession,
-} from 'next-auth/adapters';
+import type { Adapter, AdapterAccount } from 'next-auth/adapters';
 import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
@@ -85,41 +81,6 @@ export const authOptions: NextAuthOptions = {
           },
         });
       },
-      /**
-       * Same pattern as Account: callback-handler may call this with an existing
-       * session cookie; `findUnique({ where: { sessionToken }})` requires the
-       * Session.sessionToken unique index to exist in the database.
-       */
-      async getSessionAndUser(sessionToken: string) {
-        if (!sessionToken) return null;
-        const userAndSession = await prisma.session.findFirst({
-          where: { sessionToken },
-          include: { user: true },
-        });
-        if (!userAndSession) return null;
-        const { user, ...session } = userAndSession;
-        return { user, session } as any;
-      },
-      async deleteSession(sessionToken: string) {
-        if (!sessionToken) return;
-        await prisma.session.deleteMany({ where: { sessionToken } });
-      },
-      async updateSession(
-        session: Partial<AdapterSession> & Pick<AdapterSession, 'sessionToken'>
-      ) {
-        const row = await prisma.session.findFirst({
-          where: { sessionToken: session.sessionToken },
-        });
-        if (!row) return null;
-        const { sessionToken: _st, ...data } = session;
-        if (Object.keys(data).length === 0) {
-          return prisma.session.findUnique({ where: { id: row.id } }) as any;
-        }
-        return prisma.session.update({
-          where: { id: row.id },
-          data,
-        }) as any;
-      },
       async createUser(
         data: Parameters<NonNullable<Adapter['createUser']>>[0]
       ) {
@@ -137,7 +98,12 @@ export const authOptions: NextAuthOptions = {
       },
     } satisfies Adapter;
   })(),
-  session: { strategy: 'database' },
+  /**
+   * Database sessions do not work with `next-auth/middleware` on the Edge (no Prisma;
+   * `getToken` expects a JWT). JWT keeps User/Account in Postgres via the adapter but
+   * stores the session in an encrypted cookie so middleware and API routes agree.
+   */
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login' },
   providers,
   callbacks: {
@@ -162,12 +128,23 @@ export const authOptions: NextAuthOptions = {
       if (dbUser?.disabled) return false;
       return true;
     },
-    async session({ session, user }) {
-      if (session.user) {
-        (session.user as any).id = user.id;
-        (session.user as any).role = (user as any).role;
-        (session.user as any).organizationId = (user as any).organizationId;
-        (session.user as any).disabled = (user as any).disabled;
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+        token.role = (user as { role?: string }).role as typeof token.role;
+        token.organizationId = (user as { organizationId?: string })
+          .organizationId;
+        token.disabled = Boolean((user as { disabled?: boolean }).disabled);
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
+        session.user.role = (token.role ?? 'USER') as typeof session.user.role;
+        session.user.organizationId =
+          token.organizationId ?? DEFAULT_ORG_ID;
+        session.user.disabled = token.disabled ?? false;
       }
       return session;
     },

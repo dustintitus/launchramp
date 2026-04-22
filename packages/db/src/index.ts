@@ -9,10 +9,11 @@ function resolveDatabaseUrl(): string {
   const url =
     process.env.DATABASE_URL?.trim() ||
     process.env.POSTGRES_PRISMA_URL?.trim() ||
-    process.env.POSTGRES_URL?.trim();
+    process.env.POSTGRES_URL?.trim() ||
+    process.env.PRISMA_DATABASE_URL?.trim();
   if (!url) {
     throw new Error(
-      'Database URL missing: in Vercel → Settings → Environment Variables, set DATABASE_URL to your Postgres connection string (or ensure POSTGRES_PRISMA_URL exists from Vercel Postgres).'
+      'Database URL missing: in Vercel → Settings → Environment Variables, set DATABASE_URL (or POSTGRES_PRISMA_URL / POSTGRES_URL / PRISMA_DATABASE_URL from Prisma Postgres or Vercel Postgres).'
     );
   }
   return url;

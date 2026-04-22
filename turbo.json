@@ -1,12 +1,18 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "envMode": "loose",
   "globalPassThroughEnv": [
     "DATABASE_URL",
     "POSTGRES_PRISMA_URL",
     "POSTGRES_URL",
+    "POSTGRES_URL_NON_POOLING",
     "VERCEL",
     "VERCEL_ENV",
-    "SKIP_PRISMA_MIGRATE"
+    "SKIP_PRISMA_MIGRATE",
+    "PRISMA_VERCEL_SYNC",
+    "PRISMA_BASELINE_ON_P3005",
+    "PRISMA_NO_AUTO_SYNC_P3005",
+    "PRISMA_DATABASE_URL"
   ],
   "tasks": {
     "build": {

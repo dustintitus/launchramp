@@ -7,7 +7,7 @@
  *   PRISMA_VERCEL_SYNC=1       — same as auto path; explicit opt-in (optional).
  *   PRISMA_BASELINE_ON_P3005=1 — only `migrate resolve --applied` (DB must already match SQL).
  *   PRISMA_FAIL_OPEN_MIGRATE=1 — if migrate still fails, exit 0 so the Vercel build can finish (dangerous).
- *   PRISMA_DB_PUSH_ACCEPT_DATA_LOSS=1 — pass --accept-data-loss to db push during P3005 recovery.
+ *   PRISMA_DB_PUSH_NO_ACCEPT_DATA_LOSS=1 — omit --accept-data-loss on P3005 db push (fails if Prisma requires it).
  *   RUN_VERCEL_MIGRATE_SCRIPT=1 — run this script without VERCEL=1 (e.g. local dry run).
  * migrate URLs: prisma:// / prisma+postgres:// (Accelerate) are skipped; use postgresql:// for deploy.
  */
@@ -209,8 +209,12 @@ if (/\bP3005\b/i.test(out)) {
         : 'P3005 auto-recovery (set PRISMA_NO_AUTO_SYNC_P3005=1 to skip)';
     console.log(`vercel-migrate-if-prod: ${label} — prisma db push, then baseline migrations`);
     const pushArgs = ['db', 'push', '--schema', schema, '--skip-generate'];
-    if (process.env.PRISMA_DB_PUSH_ACCEPT_DATA_LOSS === '1') {
+    // Prisma refuses push when adding uniques etc. without this flag; P3005 recovery is explicitly a sync path.
+    if (process.env.PRISMA_DB_PUSH_NO_ACCEPT_DATA_LOSS !== '1') {
       pushArgs.push('--accept-data-loss');
+      console.log(
+        'vercel-migrate-if-prod: db push --accept-data-loss (new uniques/constraints may fail at push if duplicate rows exist; fix data or use PRISMA_BASELINE_ON_P3005=1 if schema already matches migrations)'
+      );
     }
     const push = spawnPrisma(pushArgs, true);
     if (push.status !== 0) process.exit(push.status ?? 1);

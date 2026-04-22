@@ -1,4 +1,4 @@
 {
   "installCommand": "cd ../.. && npm ci",
-  "buildCommand": "cd ../.. && npx --yes prisma@5.22.0 migrate deploy --schema=packages/db/prisma/schema.prisma && cd apps/web && npm run build"
+  "buildCommand": "cd ../.. && export DATABASE_URL=\"${DATABASE_URL:-${POSTGRES_PRISMA_URL:-$POSTGRES_URL}}\" && npx --yes prisma@5.22.0 migrate deploy --schema=packages/db/prisma/schema.prisma && cd apps/web && npm run build"
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from 'next-auth/middleware';
 
-const PUBLIC_PREFIXES = ['/login', '/api/auth', '/api/webhooks/twilio/inbound'];
+const PUBLIC_PREFIXES = [
+  '/login',
+  '/api/auth',
+  '/api/health',
+  '/api/webhooks/twilio/inbound',
+];
 
 export default withAuth(
   function middleware() {

@@ -6,6 +6,20 @@ export const metadata = {
   title: 'Admin users | Launch Ramp',
 };
 
+async function getLightspeedCmfs() {
+  try {
+    const res = await fetch('/api/integrations/lightspeed/dealers', {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { cmfs?: string[] };
+    return Array.isArray(json.cmfs) ? json.cmfs : [];
+  } catch {
+    return [];
+  }
+}
+
 async function getUsers(orgId: string) {
   return prisma.user.findMany({
     where: { organizationId: orgId },
@@ -24,6 +38,23 @@ async function getUsers(orgId: string) {
 export default async function AdminUsersPage() {
   const admin = await requireAdmin();
   const users = await getUsers(admin.organizationId);
+  const cmfs = await getLightspeedCmfs();
+
+  async function runLightspeedSync() {
+    'use server';
+    await requireAdmin();
+    const res = await fetch('/api/integrations/lightspeed/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      console.warn('[lightspeed sync] failed', await res.text());
+    }
+    revalidatePath('/dashboard');
+    revalidatePath('/contacts');
+    revalidatePath('/dashboard/admin/users');
+  }
 
   async function setRole(formData: FormData) {
     'use server';
@@ -61,6 +92,28 @@ export default async function AdminUsersPage() {
         <p className="mt-1 text-sm text-slate-600">
           Manage access for your organization.
         </p>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Lightspeed sync
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Triggers an on-demand sync of open repair orders + customers into the local DB.
+        </p>
+        {cmfs.length > 0 && (
+          <p className="mt-2 text-xs text-slate-500">
+            Available CMFs: <span className="font-mono">{cmfs.join(', ')}</span>
+          </p>
+        )}
+        <form action={runLightspeedSync}>
+          <button
+            type="submit"
+            className="mt-3 rounded-lg bg-dashboard-navy px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-dashboard-navy/90"
+          >
+            Run Lightspeed sync
+          </button>
+        </form>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">

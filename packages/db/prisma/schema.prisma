@@ -84,6 +84,7 @@ model Organization {
   activities      Activity[]
   bookings        Booking[]
   staffMembers    StaffMember[]
+  syncStates      SyncState[]
 }
 
 model Booking {
@@ -93,12 +94,27 @@ model Booking {
   service        String
   scheduledAt    DateTime
   status         BookingStatus  @default(PENDING)
+  /// External system that created/owns this booking (e.g. "lightspeed")
+  source         String?
+  /// Lightspeed dealer identifier (CMF) when `source = "lightspeed"`
+  cmf            String?
+  /// Lightspeed ROHeaderID when `source = "lightspeed"`
+  externalBookingId String?
+  /// Lightspeed CustID when `source = "lightspeed"`
+  externalCustomerId String?
+  vin            String?
+  make           String?
+  model          String?
+  year           String?
+  jobDescription String?
+  raw            Json?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, orderNumber])
+  @@unique([organizationId, source, cmf, externalBookingId])
   @@index([organizationId])
   @@index([organizationId, scheduledAt])
 }
@@ -185,6 +201,27 @@ model Contact {
   phone          String
   name           String?
   email          String?
+  /// External system that created/owns this contact (e.g. "lightspeed")
+  source         String?
+  /// Lightspeed dealer identifier (CMF) when `source = "lightspeed"`
+  cmf            String?
+  /// Lightspeed CustID when `source = "lightspeed"`
+  externalCustomerId String?
+  firstName      String?
+  lastName       String?
+  company        String?
+  phoneHome      String?
+  phoneWork      String?
+  phoneMobile    String?
+  address1       String?
+  address2       String?
+  city           String?
+  region         String?
+  postalCode     String?
+  country        String?
+  customerType   String?
+  marketingOptOut Boolean?
+  raw            Json?
   stage          LifecycleStage @default(lead)
   ownerId        String?
   tags           String[] @default([])
@@ -199,8 +236,27 @@ model Contact {
   consentEvents  ConsentEvent[]
 
   @@unique([organizationId, phone])
+  @@unique([organizationId, source, cmf, externalCustomerId])
   @@index([organizationId])
   @@index([organizationId, stage])
+}
+
+model SyncState {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String
+  endpoint       String
+  cmf            String   @default("")
+  lastSyncAt     DateTime?
+  lastSuccessAt  DateTime?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider, endpoint, cmf])
+  @@index([organizationId, provider])
 }
 
 model Conversation {

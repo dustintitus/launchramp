@@ -129,10 +129,17 @@ export async function syncLightspeedOpenRepairOrders(args: {
       password: args.password,
     });
 
-    const [openRows, customers] = await Promise.all([
-      client.getOpenServiceDet(cmf),
-      client.getCustomers(cmf),
-    ]);
+    const openRows = await client.getOpenServiceDet(cmf);
+
+    /** Bulk `/Customer/{CMF}` is a separate 3PA entitlement; 403 is common if not purchased. */
+    let customers: Awaited<ReturnType<typeof client.getCustomers>> = [];
+    let customerBulkFetchFailed: string | null = null;
+    try {
+      customers = await client.getCustomers(cmf);
+    } catch (e) {
+      customerBulkFetchFailed =
+        e instanceof Error ? e.message : 'Unknown error fetching customers';
+    }
 
     const customersById = new Map<string, (typeof customers)[number]>();
     for (const c of customers) {
@@ -297,7 +304,14 @@ export async function syncLightspeedOpenRepairOrders(args: {
       lastError: null,
     });
 
-    return { ok: true as const, openRepairOrders: openRows.length, customers: customers.length };
+    return {
+      ok: true as const,
+      openRepairOrders: openRows.length,
+      customers: customers.length,
+      ...(customerBulkFetchFailed
+        ? { customerBulkFetchFailed }
+        : {}),
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error';
     await upsertSyncState({

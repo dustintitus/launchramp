@@ -88,6 +88,11 @@ export class LightspeedClient {
     return this.getJson<LightspeedOpenServiceDetRow[]>(`/OpenServiceDet/${encodeURIComponent(cmf)}`);
   }
 
+  /**
+   * Bulk customer export for a dealer CMF. Requires the **Customer** 3PA feed on the
+   * Lightspeed subscription; otherwise the API returns **403 Forbidden** (not a bug in auth).
+   * @see https://data-docs.lightspeeddataservices.com/3pa/customer/example-url/
+   */
   async getCustomers(cmf: string): Promise<LightspeedCustomerRow[]> {
     return this.getJson<LightspeedCustomerRow[]>(`/Customer/${encodeURIComponent(cmf)}`);
   }

@@ -61,7 +61,12 @@ async function getUsers(orgId: string) {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams?: { lightspeed?: string; message?: string; count?: string };
+  searchParams?: {
+    lightspeed?: string;
+    message?: string;
+    count?: string;
+    customerBulk?: string;
+  };
 }) {
   const admin = await requireAdmin();
   const users = await getUsers(admin.organizationId);
@@ -69,6 +74,15 @@ export default async function AdminUsersPage({
   const ls = searchParams?.lightspeed;
   const lsDetail = searchParams?.message
     ? decodeURIComponent(searchParams.message).slice(0, 400)
+    : null;
+  const customerBulkDetail = searchParams?.customerBulk
+    ? (() => {
+        try {
+          return decodeURIComponent(searchParams.customerBulk).slice(0, 500);
+        } catch {
+          return searchParams.customerBulk.slice(0, 500);
+        }
+      })()
     : null;
 
   async function runLightspeedSync() {
@@ -97,9 +111,16 @@ export default async function AdminUsersPage({
       const msg = encodeURIComponent(result.error.slice(0, 300));
       redirect(`/dashboard/admin/users?lightspeed=api_error&message=${msg}`);
     }
-    redirect(
-      `/dashboard/admin/users?lightspeed=ok&count=${String(result.openRepairOrders)}`
-    );
+    const params = new URLSearchParams();
+    params.set('lightspeed', 'ok');
+    params.set('count', String(result.openRepairOrders));
+    if (result.customerBulkFetchFailed) {
+      params.set(
+        'customerBulk',
+        encodeURIComponent(result.customerBulkFetchFailed.slice(0, 400))
+      );
+    }
+    redirect(`/dashboard/admin/users?${params.toString()}`);
   }
 
   async function setRole(formData: FormData) {
@@ -148,13 +169,30 @@ export default async function AdminUsersPage({
           Triggers an on-demand sync of open repair orders + customers into the local DB.
         </p>
         {ls === 'ok' ? (
-          <p
-            role="status"
-            className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
-          >
-            Sync finished. Open repair orders processed:{' '}
-            <span className="font-mono">{searchParams?.count ?? '—'}</span>
-          </p>
+          <div className="mt-3 space-y-2">
+            <p
+              role="status"
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+            >
+              Sync finished. Open repair orders processed:{' '}
+              <span className="font-mono">{searchParams?.count ?? '—'}</span>
+            </p>
+            {customerBulkDetail ? (
+              <p
+                role="status"
+                className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+              >
+                <span className="font-semibold">Customer bulk feed skipped.</span> Repair orders still
+                synced; contact records use placeholders where full customer data was unavailable. Lightspeed
+                returned:{' '}
+                <span className="mt-1 block font-mono text-xs text-amber-900/90">{customerBulkDetail}</span>
+                <span className="mt-2 block text-xs text-amber-900/80">
+                  Ask Lightspeed to enable the <strong>Customer</strong> 3PA dataset for your CMF if you need
+                  names, phones, and addresses on every contact.
+                </span>
+              </p>
+            ) : null}
+          </div>
         ) : null}
         {ls === 'missing_cmf' ? (
           <p

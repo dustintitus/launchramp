@@ -66,6 +66,8 @@ export default async function AdminUsersPage({
     message?: string;
     count?: string;
     customerBulk?: string;
+    user?: string;
+    userMessage?: string;
   };
 }) {
   const admin = await requireAdmin();
@@ -81,6 +83,17 @@ export default async function AdminUsersPage({
           return decodeURIComponent(searchParams.customerBulk).slice(0, 500);
         } catch {
           return searchParams.customerBulk.slice(0, 500);
+        }
+      })()
+    : null;
+
+  const userResult = searchParams?.user;
+  const userDetail = searchParams?.userMessage
+    ? (() => {
+        try {
+          return decodeURIComponent(searchParams.userMessage).slice(0, 300);
+        } catch {
+          return searchParams.userMessage.slice(0, 300);
         }
       })()
     : null;
@@ -123,6 +136,49 @@ export default async function AdminUsersPage({
     redirect(`/dashboard/admin/users?${params.toString()}`);
   }
 
+  async function addUser(formData: FormData) {
+    'use server';
+    const adminUser = await requireAdmin();
+
+    const emailRaw = String(formData.get('email') ?? '').trim();
+    const nameRaw = String(formData.get('name') ?? '').trim();
+    const roleRaw = String(formData.get('role') ?? 'USER').trim();
+    const role = roleRaw === 'ADMIN' ? 'ADMIN' : 'USER';
+
+    const email = emailRaw.toLowerCase();
+    if (!email || !email.includes('@')) {
+      redirect('/dashboard/admin/users?user=invalid_email');
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing && existing.organizationId !== adminUser.organizationId) {
+      redirect('/dashboard/admin/users?user=wrong_org');
+    }
+
+    await prisma.user.upsert({
+      where: { email },
+      update: {
+        name: nameRaw || undefined,
+        role,
+        disabled: false,
+      },
+      create: {
+        email,
+        name: nameRaw || null,
+        organizationId: adminUser.organizationId,
+        role,
+        disabled: false,
+      },
+    });
+
+    revalidatePath('/dashboard/admin/users');
+    redirect(
+      `/dashboard/admin/users?user=ok&userMessage=${encodeURIComponent(
+        `${email} added. They can now sign in with Google using that email.`
+      )}`
+    );
+  }
+
   async function setRole(formData: FormData) {
     'use server';
     const admin = await requireAdmin();
@@ -159,6 +215,87 @@ export default async function AdminUsersPage({
         <p className="mt-1 text-sm text-slate-600">
           Manage access for your organization.
         </p>
+      </div>
+
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Add user
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Pre-provision a user by email. They’ll be able to sign in via Google using that email.
+        </p>
+
+        {userResult === 'ok' ? (
+          <p
+            role="status"
+            className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950"
+          >
+            {userDetail ?? 'User added.'}
+          </p>
+        ) : null}
+        {userResult === 'invalid_email' ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            Enter a valid email address.
+          </p>
+        ) : null}
+        {userResult === 'wrong_org' ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950"
+          >
+            That email already belongs to a user in a different organization.
+          </p>
+        ) : null}
+
+        <form action={addUser} className="mt-4 grid grid-cols-12 gap-3">
+          <div className="col-span-12 md:col-span-5">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Email
+            </label>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="name@company.com"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
+            />
+          </div>
+          <div className="col-span-12 md:col-span-4">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Name (optional)
+            </label>
+            <input
+              name="name"
+              type="text"
+              placeholder="Full name"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
+            />
+          </div>
+          <div className="col-span-12 md:col-span-2">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Role
+            </label>
+            <select
+              name="role"
+              defaultValue="USER"
+              className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-slate-300"
+            >
+              <option value="USER">User</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <div className="col-span-12 md:col-span-1 flex items-end justify-end">
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-dashboard-navy px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-dashboard-navy/90"
+            >
+              Add
+            </button>
+          </div>
+        </form>
       </div>
 
       <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4">
